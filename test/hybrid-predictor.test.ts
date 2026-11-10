@@ -3,6 +3,8 @@ import { test } from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { GhostController } from "../src/completion/controller.ts";
+import { queryFor } from "../src/completion/query.ts";
 import { HybridPredictor } from "../src/completion/hybrid-predictor.ts";
 import { PersonalDictionaryStore } from "../src/dictionary/store.ts";
 import type { Predictor } from "../src/completion/types.ts";
@@ -127,4 +129,21 @@ test("explicit persist saves both dictionary and model state", async (t) => {
   await f.hybrid.feedback("", "capric", "orn", true);
   await f.hybrid.persist();
   assert.equal(persisted, 1);
+});
+
+// Keep learned Cyrillic completions on the dictionary path even when the model is unavailable.
+test("mixed-language prompts produce Cyrillic ghost text without model inference", async (t) => {
+  const f = await setup(t, async () => {
+    throw new Error("offline");
+  });
+  await f.hybrid.ready();
+  await f.hybrid.observe(["Please перевіряти", "Again перевіряти"]);
+  const controller = new GhostController(f.hybrid, () => {});
+  t.after(() => controller.dispose());
+  const text = "Please перев";
+  const snapshot = { text, line: 0, col: text.length, session: "cyrillic" };
+  controller.update(snapshot, queryFor([text], 0, text.length));
+  assert.equal(controller.visible(snapshot), "іряти");
+  assert.equal((await f.hybrid.complete("Please ", "перев"))?.suffix, "іряти");
+  assert.equal(f.calls(), 0);
 });
