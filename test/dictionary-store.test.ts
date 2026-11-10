@@ -131,3 +131,49 @@ test("failed writes retain pending observations and close reports unsaved data",
   await s.close();
   assert.ok(warnings.some((w) => /unsaved/i.test(w)));
 });
+
+// Keep Cyrillic vocabulary available across sessions without adding language configuration.
+test("Cyrillic prompts and accepted words survive a dictionary restart", async (t) => {
+  const path = await fixture(t);
+  const entries = [
+    ["працювати", "прац", "ювати"],
+    ["разработка", "разр", "аботка"],
+    ["прывітанне", "прыв", "ітанне"],
+    ["съобщение", "съоб", "щение"],
+    ["љубав", "љуб", "ав"],
+    ["ѕвезда", "ѕве", "зда"],
+    ["пам’ятати", "пам’", "ятати"],
+  ];
+  const store = new PersonalDictionaryStore(path, options);
+  t.after(() => store.close());
+  await store.load();
+  const prompt = entries.map(([word]) => word).join(" ") + " implementation";
+  store.recordPrompt(prompt + " " + prompt);
+  for (const [, prefix] of entries)
+    assert.equal(store.lookup(prefix), undefined, prefix);
+  store.recordPrompt(prompt);
+  store.recordAcceptance("перев", "іряти");
+  await store.close();
+
+  const state = JSON.parse(await readFile(path, "utf8"));
+  for (const [word] of entries) {
+    const saved = state.words.find(
+      (entry: { word: string }) => entry.word === word.replaceAll("’", "'"),
+    );
+    assert.equal(saved?.promptCount, 2, word);
+  }
+  const reopened = new PersonalDictionaryStore(path, options);
+  t.after(() => reopened.close());
+  await reopened.load();
+  for (const [, prefix, suffix] of entries) {
+    assert.equal(reopened.lookup(prefix)?.suffix, suffix, prefix);
+    assert.equal(
+      reopened.lookup(prefix.toUpperCase())?.suffix,
+      suffix.toUpperCase(),
+      prefix,
+    );
+  }
+  assert.equal(reopened.lookup("перев")?.suffix, "іряти");
+  assert.equal(reopened.lookup("imple")?.suffix, "mentation");
+  assert.equal(reopened.lookup("ghfw"), undefined);
+});

@@ -78,6 +78,10 @@ Ranking takes into account:
 
 #### The personal dictionary is stored locally and shared between Pi sessions.
 
+Cyrillic words are learned from submitted prompts and accepted suggestions, just like Latin words. No language selection is needed: dictionary suggestions match the prefix you type, including in mixed English/Cyrillic prompts. Learned words remain available after restarting Pi.
+
+There is no bundled Cyrillic dictionary. A personal word normally needs to appear in at least two submitted prompts, or be accepted as a suggestion, before it can be suggested; ambiguous prefixes may still produce no dictionary suggestion.
+
 Repeated words inside one submitted prompt count once.
 
 Code, paths, slash commands and paste markers are excluded from personal vocabulary learning.
