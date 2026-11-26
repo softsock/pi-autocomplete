@@ -29,7 +29,7 @@ Press **`Esc`** to dismiss it.
 
 <div align="center">
 
-<img src="./assets/32.gif" alt="pi-autocomplete demo" width="100%">
+<img src="./assets/readme-demo-21x9.gif" alt="pi-autocomplete inline word completion demo" width="100%">
 
 </div>
 
